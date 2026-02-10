@@ -2,7 +2,7 @@
 
 ## 项目概述
 
-chatt2 是一个基于 Vue 3 + TypeScript + Vite 的实时聊天应用程序。项目采用 Composition API 编写风格，集成了完整的开发工具链，包括路由管理、状态管理、用户认证、实时消息传递等功能。后端使用 Supabase 提供数据库、身份验证和实时订阅服务。
+chatt2 是一个基于 Vue 3 + TypeScript + Vite 的实时聊天应用程序。项目采用 Composition API 编写风格，集成了完整的开发工具链，包括路由管理、状态管理、自定义认证系统、实时消息传递、文件上传等功能。后端使用 Supabase 提供数据库、Storage 和实时订阅服务。
 
 ### 核心技术栈
 
@@ -11,8 +11,8 @@ chatt2 是一个基于 Vue 3 + TypeScript + Vite 的实时聊天应用程序。�
 - **语言**: TypeScript 5.9.3
 - **路由**: Vue Router 5.0.1
 - **状态管理**: Pinia 3.0.4
-- **后端服务**: Supabase 2.95.3 (认证、数据库、实时订阅)
-- **日期处理**: dayjs 1.11.19
+- **后端服务**: Supabase 2.95.3 (数据库、Storage、实时订阅)
+- **密码哈希**: Web Crypto API (SHA-256)
 - **Markdown 渲染**: marked 17.0.1
 - **LaTeX 渲染**: katex 0.16.28
 - **表单验证**: Zod 4.3.6
@@ -26,17 +26,18 @@ chatt2 是一个基于 Vue 3 + TypeScript + Vite 的实时聊天应用程序。�
 ```
 src/
 ├── api/              # API 接口层
-│   ├── auth.ts       # 认证相关 API
-│   ├── email.ts      # 邮箱验证 API
+│   ├── auth.ts       # 认证相关 API（保留但未使用）
+│   ├── email.ts      # 邮箱验证 API（保留但未使用）
+│   ├── storage.ts    # 文件上传 API
 │   └── supabase.ts   # Supabase 客户端配置
 ├── assets/           # 静态资源（图片、CSS）
 ├── components/       # 可复用组件
 │   ├── __tests__/    # 组件单元测试
 │   ├── icons/        # 图标组件
-│   ├── ChatInput.vue     # 聊天输入组件
+│   ├── ChatInput.vue     # 聊天输入组件（支持文件上传）
 │   ├── Header.vue       # 头部组件
 │   ├── HelloWorld.vue    # 示例组件
-│   ├── MessageItem.vue  # 消息项组件
+│   ├── MessageItem.vue  # 消息项组件（支持文件附件、图片预览）
 │   ├── RoomCard.vue     # 聊天室卡片组件
 │   ├── RoomList.vue     # 聊天室列表组件
 │   ├── TheWelcome.vue   # 欢迎组件
@@ -51,7 +52,7 @@ src/
 ├── router/           # 路由配置
 │   └── index.ts      # 路由定义和导航守卫
 ├── stores/           # Pinia 状态管理
-│   ├── auth.ts       # 认证状态
+│   ├── auth.ts       # 认证状态（自定义认证系统）
 │   ├── chat.ts       # 聊天状态
 │   ├── theme.ts      # 主题状态（仅支持浅色主题）
 │   └── counter.ts    # 计数器示例
@@ -64,7 +65,7 @@ src/
 │   ├── email.ts      # 邮箱工具
 │   ├── helpers.ts    # 辅助函数
 │   ├── markdown.ts   # Markdown 和 LaTeX 渲染工具
-│   └── validation.ts # 验证函数
+│   └── validation.ts # 验证函数（包含确认密码验证）
 ├── views/            # 页面级组件
 │   ├── HomeView.vue      # 首页
 │   ├── LoginView.vue     # 登录/注册页
@@ -84,8 +85,13 @@ src/
 项目需要配置 Supabase 环境变量。在项目根目录创建 `.env` 文件：
 
 ```env
+# Supabase 配置
 VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_ANON_KEY=your-anon-key
+
+# 文件上传配置
+VITE_SUPABASE_STORAGE_BUCKET=chat-attachments
+VITE_MAX_FILE_SIZE=52428800  # 50MB
 ```
 
 ## 构建和运行
@@ -179,15 +185,28 @@ npm run type-check
 
 使用 `vue-tsc` 进行类型检查。
 
+### 代码规范说明
+
+- **TypeScript 严格模式**：已启用，确保类型安全
+- **无 console 调试语句**：已清理所有 console.log/console.error，适合生产部署
+- **代码风格统一**：使用 Oxlint + ESLint + Prettier 确保代码一致性
+
 ## 应用功能
 
-### 认证系统
+### 认证系统（自定义认证）
 
-- **邮箱注册**: 用户输入邮箱、用户名和密码完成注册，Supabase 自动发送邮箱验证链接
-- **邮箱登录**: 使用邮箱和密码登录
-- **自动会话管理**: 使用 localStorage 持久化会话，支持自动刷新令牌
-- **用户配置文件**: 存储用户名等扩展信息
+- **用户名注册**: 用户输入用户名、密码和确认密码完成注册
+- **密码哈希**: 使用 Web Crypto API (SHA-256) 进行密码哈希存储
+- **用户名登录**: 使用用户名和密码登录
+- **自动会话管理**: 使用 localStorage 持久化会话
+- **用户配置文件**: 存储用户名、密码哈希等信息
 - **导航守卫**: 基于认证状态的路由保护
+- **密码验证**: 注册时需要确认密码，防止输入错误
+
+**实现细节**：
+- 密码哈希：`src/stores/auth.ts:8-15`
+- 会话恢复：使用 `localStorage.getItem('user_session')`
+- 不依赖 Supabase Auth 服务
 
 ### 聊天系统
 
@@ -196,14 +215,38 @@ npm run type-check
 - **消息历史**: 加载和显示历史消息（最多 100 条）
 - **用户信息关联**: 消息关联发送者的用户名
 - **在线用户管理**: 实时显示聊天室内的在线用户列表，支持 Presence 事件（sync、join、leave）
+- **消息自动滚动**: 新消息到达时自动滚动到底部
+
+### 文件上传功能
+
+- **文件类型支持**: 图片、视频、音频、文档等多种类型
+- **文件大小限制**: 最大 50MB（可配置）
+- **上传进度显示**: 实时显示上传进度百分比
+- **文件预览**: 
+  - 图片/视频/音频直接在聊天中预览
+  - 文档显示文件名和大小
+  - 点击图片可放大预览
+- **拖放上传**: 支持拖放文件到聊天输入框
+- **存储服务**: 使用 Supabase Storage 存储
+
+**API 位置**: `src/api/storage.ts`
+
+**环境变量**:
+- `VITE_SUPABASE_STORAGE_BUCKET`: Storage bucket 名称
+- `VITE_MAX_FILE_SIZE`: 文件大小限制（字节）
 
 ### 消息渲染系统
 
-- **Markdown 支持**: 使用 marked 库渲染标准 Markdown 语法（标题、列表、代码块、引用等）
+- **Markdown 支持**: 使用 marked 库渲染标准 Markdown 语法
+  - 标题、列表、代码块、引用等
+  - 粗体、斜体、链接、图片等
 - **LaTeX 数学公式**: 使用 katex 库渲染数学公式
   - 行内公式: `$E=mc^2$`
   - 块级公式: `$$\sum_{i=1}^{n} i = \frac{n(n+1)}{2}$$`
 - **渲染工具**: `src/utils/markdown.ts` 提供统一的渲染函数 `renderMarkdown()`
+- **混合渲染**: 支持 Markdown 和 LaTeX 混合使用
+
+**实现位置**: `src/utils/markdown.ts`
 
 ### 主题系统
 
@@ -226,7 +269,7 @@ npm run type-check
 **导航守卫行为**:
 - 未认证用户访问受保护路由时重定向到登录页，并保存目标路径
 - 已认证用户访问登录页或首页时重定向到仪表盘
-- 自动初始化认证状态
+- 自动初始化认证状态（从 localStorage 恢复）
 - 每次路由变更时自动初始化主题
 
 ## 开发约定
@@ -249,6 +292,7 @@ npm run type-check
 
 - 所有 API 调用集中在 `src/api/` 目录
 - Supabase 客户端配置在 `src/api/supabase.ts`
+- 文件上传 API 在 `src/api/storage.ts`
 - 遵循 RESTful 和 Supabase 最佳实践
 
 ### 组合式函数 (Composables)
@@ -278,7 +322,7 @@ npm run type-check
 
 ### 配置文件说明
 
-- `.env`: 环境变量配置（Supabase 配置）
+- `.env`: 环境变量配置（Supabase 配置、文件上传配置）
 - `.editorconfig`: 编辑器配置（统一代码风格：2空格缩进、LF换行、最大100字符）
 - `.oxlintrc.json`: Oxlint 配置（插件：eslint、typescript、unicorn、oxc、vue；浏览器环境支持；正确性问题设为错误级别）
 - `.prettierrc.json`: Prettier 配置（无分号、单引号、100字符换行）
@@ -317,3 +361,41 @@ npm run type-check
 | `npm run lint` | 代码检查和修复 |
 | `npm run format` | 代码格式化 |
 | `npm run type-check` | 类型检查 |
+
+## 部署
+
+### 部署到 Cloudflare Pages
+
+1. **构建项目**
+   ```bash
+   npm run build
+   ```
+
+2. **连接 GitHub 仓库**
+   - 在 Cloudflare Dashboard 中创建 Pages 项目
+   - 连接到 chatt2 仓库
+
+3. **配置构建设置**
+   - **Framework preset**: `Vite`
+   - **Build command**: `npm run build`
+   - **Build output directory**: `dist`
+
+4. **配置环境变量**
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_ANON_KEY`
+   - `VITE_SUPABASE_STORAGE_BUCKET`
+   - `VITE_MAX_FILE_SIZE`
+
+5. **自动部署**
+   - 每次推送到 main 分支时自动构建和部署
+
+### Git 提交
+
+```bash
+git init
+git add .
+git commit -m "Initial commit: chatt2 chat application"
+git remote add origin https://github.com/your-username/chatt2.git
+git branch -M main
+git push -u origin main
+```
