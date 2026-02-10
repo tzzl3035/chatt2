@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import type { Message } from '@/types/chat'
-import { formatRelativeTime, formatTime } from '@/utils/helpers'
+import { formatDateTime } from '@/utils/helpers'
 import { renderMarkdown } from '@/utils/markdown'
 import { formatFileSize, getFileTypeCategory } from '@/api/storage'
 
@@ -10,8 +10,7 @@ const props = defineProps<{
   isCurrentUser: boolean
 }>()
 
-const timeAgo = computed(() => formatRelativeTime(props.message.created_at))
-const timeFull = computed(() => formatTime(props.message.created_at))
+const timeDisplay = computed(() => formatDateTime(props.message.created_at))
 
 const renderedContent = computed(() => renderMarkdown(props.message.content))
 
@@ -50,7 +49,7 @@ const closeImagePreview = () => {
     <div class="message-item__content">
       <div class="message-item__header">
         <span class="message-item__username">{{ message.username }}</span>
-        <span class="message-item__time" :title="timeFull">{{ timeAgo }}</span>
+        <span class="message-item__time">{{ timeDisplay }}</span>
       </div>
 
       <!-- 消息内容 -->
@@ -212,6 +211,11 @@ const closeImagePreview = () => {
   max-width: 70%;
 }
 
+/* 自己发送的消息内容右对齐，避免右边长空 */
+.message-item--own .message-item__content {
+  align-items: flex-end;
+}
+
 /* 带有文件附件的消息需要更多空间 */
 .message-item__content:has(.message-item__attachment) {
   max-width: 85%;
@@ -239,7 +243,7 @@ const closeImagePreview = () => {
 }
 
 .message-item__text {
-  background: var(--background-secondary);
+  background: #e8e8e8;
   padding: 0.75rem 1rem;
   border-radius: var(--radius-sm);
   border-top-left-radius: 4px;
@@ -247,6 +251,9 @@ const closeImagePreview = () => {
   line-height: 1.5;
   color: var(--text-primary);
   word-wrap: break-word;
+  max-width: 100%;
+  width: fit-content;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
 }
 
 .message-item--own .message-item__text {
@@ -304,7 +311,7 @@ const closeImagePreview = () => {
   overflow: hidden;
   border-radius: var(--radius-sm);
   background: var(--background-primary);
-  min-width: 250px;
+  min-width: 400px;
 }
 
 .message-item__video {
