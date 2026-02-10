@@ -19,6 +19,7 @@
     "format": "prettier --write --experimental-cli src/"
   },
   "dependencies": {
+    "@playwright/test": "^1.58.2",
     "@supabase/supabase-js": "^2.95.3",
     "dayjs": "^1.11.19",
     "katex": "^0.16.28",
